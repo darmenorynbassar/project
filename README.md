@@ -11,7 +11,9 @@ The project builds and evaluates machine-learning models that identify students 
 
 | Path | Contents |
 |---|---|
-| `docs/D1_project_proposal_draft.md` | Deliverable 1: project proposal (working draft) |
+| `docs/D1_Project_Proposal_Darmen_Orynbasar.docx` | Deliverable 1: project proposal in the official HWU template (draft) |
+| `docs/D1_project_proposal_draft.md` | Same proposal as plain text, for quick reading on GitHub |
+| `docs/gantt.png`, `docs/architecture.png` | Figures used in the proposal |
 | `literature.md` | Reading list with APA references and verification status |
 | `data/` | Local only, **not committed** (see below) |
 

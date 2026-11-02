@@ -1,0 +1,17 @@
+# Raw data must never be committed (ethics approval: no data in public repositories)
+data/
+*.csv
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

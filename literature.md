@@ -14,7 +14,7 @@ Citations are in APA 7th edition (Google Scholar → "Cite" → APA).
 ## 1. Dataset (primary)
 
 - ✅ Kuzilek, J., Hlosta, M., & Zdrahal, Z. (2017). Open University Learning Analytics dataset. *Scientific Data, 4*, 170171. https://doi.org/10.1038/sdata.2017.171
-  Dataset page: https://analyse.kmi.open.ac.uk/open-dataset (CC BY 4.0). 22 module presentations, 32,593 students. **Primary dataset**, approved by supervisor.
+  Download: https://figshare.com/articles/OULAD_Open_University_Learning_Analytics_Dataset/5081998 (CC BY 4.0). 22 module presentations, 32,593 students. **Primary dataset**, approved by supervisor.
 - ⚠️ Choi, Y., Lee, Y., Shin, D., Cho, J., Park, S., Lee, S., Baek, J., Bae, C., Kim, B., & Heo, J. (2020). EdNet: A large-scale hierarchical dataset in education. In *Artificial Intelligence in Education (AIED 2020)*, LNCS 12164 (pp. 69–73). Springer.
   Mentioned by supervisor as an alternative. CC BY-NC 4.0. **Not used** unless the scope changes; do not cite in the proposal unless used.
 

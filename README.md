@@ -21,7 +21,7 @@ The project builds and evaluates machine-learning models that identify students 
 
 The project uses only OULAD (Kuzilek, Hlosta & Zdrahal, 2017), a public, anonymised dataset under CC BY 4.0.
 
-1. Download the CSV files from https://analyse.kmi.open.ac.uk/open-dataset
+1. Download the ZIP (44.6 MB) from the authors' official Figshare record: https://figshare.com/articles/OULAD_Open_University_Learning_Analytics_Dataset/5081998 (the old analyse.kmi.open.ac.uk page no longer works)
 2. Put them in `data/raw/`
 
 Data files are excluded by `.gitignore`, in line with the ethics application: no dataset files are uploaded to this public repository.

@@ -2,6 +2,12 @@
 data/
 *.csv
 *.zip
+# Aggregate metrics contain no student data and can be committed
+!results/*.csv
+# Exception: chatbot replies quote pseudonymised student ids and per-student values
+results/chatbot_scenarios.csv
+# Trained models are fitted on the dataset: keep local
+models/
 
 # Python
 __pycache__/

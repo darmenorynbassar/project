@@ -28,10 +28,38 @@ Data files are excluded by `.gitignore`, in line with the ethics application: no
 
 > Kuzilek, J., Hlosta, M., & Zdrahal, Z. (2017). Open University Learning Analytics dataset. *Scientific Data, 4*, 170171. https://doi.org/10.1038/sdata.2017.171
 
+## Running the pipeline
+
+```bash
+pip install pandas pyarrow scikit-learn xgboost shap matplotlib streamlit ollama pytest
+python src/features.py       # leakage-safe features for N = 4, 8, 12, 16 weeks -> data/processed/
+python src/train.py          # LR / RF / XGBoost vs baseline -> results/, models/
+python src/evaluate.py       # threshold for recall 0.75 + fairness by group -> results/
+python src/build_support.py  # risk scores + SHAP factors for unseen 2014 students
+```
+
+## Running the advisor chatbot
+
+Needs [Ollama](https://ollama.com) with a local Qwen model. No data leaves the machine.
+
+```bash
+ollama pull qwen3:4b-instruct
+streamlit run src/app.py --server.address localhost
+```
+
+The chatbot (`src/chatbot.py`) lets Qwen choose tools from `src/support.py` and phrase their results. Every number comes from the tools. It has no tool that approves or sends anything: a human saves each decision in the app, and that only writes a local simulated log.
+
+Tests: `pytest tests/test_support.py`, and `python tests/chatbot_scenarios.py` for the chatbot scenarios (needs Ollama).
+
+`features.py` looks for the CSVs in `data/raw/`, then in `../anonymisedData/`.
+
 ## Status
 
 - [x] Topic and dataset agreed with supervisor (OULAD)
 - [x] Ethics application revised (modelling methods + dataset citation)
 - [ ] D1 proposal: draft in progress (`docs/`)
-- [ ] Data exploration and leakage-safe feature pipeline
-- [ ] Baseline models and first results (feasibility)
+- [ ] Data exploration
+- [x] Leakage-safe feature pipeline (`src/features.py`)
+- [x] Baseline models and first results (`src/train.py`, `results/`)
+- [x] Threshold selection and fairness analysis (`src/evaluate.py`)
+- [ ] Hyperparameter tuning, SHAP stability, support-layer prototype

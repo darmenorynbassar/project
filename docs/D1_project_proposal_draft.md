@@ -117,7 +117,7 @@ OULAD is downloaded from the official source (Kuzilek et al., 2017). Tables: `co
 - **Target:** at-risk = 1 for Fail/Withdrawn; 0 for Pass/Distinction.
 - **Cut-offs:** *N* ∈ {4, 8, 12, 16} weeks; only data up to the cut-off is used.
 - **Exclusions:** students who unregistered before the cut-off are excluded at that cut-off (their outcome is already known); counts are reported.
-- **Features:** (a) VLE engagement: total clicks, active days, clicks per activity type, days since last activity, weekly trend; (b) assessment: submissions, mean score, lateness, missed assessments; (c) registration: registration timing, previous attempts, studied credits; (d) demographics: gender, age band, disability, region, highest education, deprivation band.
+- **Features:** (a) VLE engagement: total clicks, active days, clicks per activity type, days since last activity, weekly trend, clicks relative to the median student in the same presentation; (b) assessment: submissions, mean score, lateness, missed assessments; (c) registration: registration timing, previous attempts, studied credits; (d) demographics: gender, age band, disability, region, highest education, deprivation band.
 - **Two feature sets:** Experiment A uses (a)–(c); Experiment B adds (d), to measure the contribution of demographics and support the fairness analysis.
 - **Missing values:** imputed with statistics learned from training data only.
 - **Class balance:** checked per module and cut-off; class weighting if needed; SMOTE (Chawla et al., 2002) tested only inside training folds.
@@ -163,26 +163,77 @@ Requirements coverage (traceability to MoSCoW), 10–20 scenario-based functiona
 
 ## 4. Feasibility
 
-**[TODO: this section must show real preliminary work. Fill it after the first experiments; do not invent numbers.]**
+The full pipeline of Section 3 (features, models, threshold selection and fairness check) has already been implemented and run on the complete dataset. Code: `src/features.py`, `src/train.py`, `src/evaluate.py`; all numbers below come from `results/`. These are first results with default hyperparameters (no tuning yet).
 
-### 4.1 Dataset access and exploration (planned evidence)
+### 4.1 Dataset access and exploration
 
-- OULAD downloaded from the official page; licence (CC BY 4.0) confirmed.
-- Table sizes and join keys checked: **[TODO: rows per table]**
-- Outcome distribution by module: **[TODO: % Pass / Distinction / Fail / Withdrawn]**
-- Share of at-risk students per cut-off week after exclusions: **[TODO]**
+- OULAD downloaded from the official Figshare record; licence (CC BY 4.0) confirmed. Data files stay local and are excluded from the repository.
+- Table sizes: `courses` 22 rows, `assessments` 206, `vle` 6,364, `studentInfo` 32,593, `studentRegistration` 32,593, `studentAssessment` 173,912, `studentVle` 10,655,280. Join keys (`code_module`, `code_presentation`, `id_student`; `id_assessment`; `id_site`) match across tables. The 32,593 registrations belong to 28,785 unique students in 22 module presentations, so some students appear more than once, which confirms the need for student-grouped splits.
+- Outcomes overall: Pass 37.9%, Withdrawn 31.2%, Fail 21.6%, Distinction 9.3%, i.e. 52.8% at risk. The at-risk share varies strongly by module (Table 4.1).
+- `imd_band` is missing for 1,111 registrations; it is kept as a separate "missing" category.
 
-### 4.2 Baseline experiment (planned evidence)
+*Table 4.1. Outcome distribution by module (% of registrations).*
 
-- One cut-off (e.g. *N* = 8), Experiment A features, logistic regression vs majority baseline with group-aware 5-fold CV.
-- Report recall, F1 and ROC-AUC on the at-risk class: **[TODO]**
-- One SHAP summary plot for the baseline: **[TODO: figure]**
+| Module | n | Pass | Distinction | Fail | Withdrawn | At risk |
+|---|---|---|---|---|---|---|
+| AAA | 748 | 65.1 | 5.9 | 12.2 | 16.8 | 29.0 |
+| BBB | 7,909 | 38.9 | 8.6 | 22.3 | 30.2 | 52.5 |
+| CCC | 4,434 | 26.6 | 11.2 | 17.6 | 44.5 | 62.1 |
+| DDD | 6,272 | 35.5 | 6.1 | 22.5 | 35.9 | 58.4 |
+| EEE | 2,934 | 44.1 | 12.1 | 19.2 | 24.6 | 43.8 |
+| FFF | 7,762 | 38.4 | 8.6 | 22.0 | 31.0 | 53.0 |
+| GGG | 2,534 | 44.1 | 15.6 | 28.7 | 11.5 | 40.2 |
+
+Students who unregistered before the cut-off are excluded at that cut-off (Section 3.3). This removes many early withdrawals, so the remaining at-risk share is lower and closer to balanced (Table 4.2).
+
+*Table 4.2. Students kept per cut-off week.*
+
+| Cut-off *N* | Excluded (unregistered before cut-off) | Students kept | At-risk share | Range across modules |
+|---|---|---|---|---|
+| 4 | 5,040 | 27,553 | 44.2% | 26–52% |
+| 8 | 6,061 | 26,532 | 42.0% | 25–48% |
+| 12 | 6,860 | 25,733 | 40.2% | 23–46% |
+| 16 | 7,652 | 24,941 | 38.3% | 23–45% |
+
+### 4.2 First experiments
+
+**Set-up.** Features use only data dated before day 7*N* (Section 3.3): 37–38 behavioural, assessment and registration features (one activity type has no clicks before week 4) in Experiment A, plus 6 demographic features in Experiment B. Models are evaluated with 5-fold `StratifiedGroupKFold` grouped by student, with all preprocessing fitted inside the training folds. The out-of-time check trains on 2013 presentations and tests on 2014 presentations, removing test students who also appear in training.
+
+**Results at the default threshold (0.5).** The majority-class baseline predicts "not at risk" for everyone (recall 0, ROC-AUC 0.50). All three models clearly beat it, and every metric improves as *N* grows (Table 4.3; `results/figures/earliness.png`).
+
+*Table 4.3. At-risk class, Experiment A, 5-fold group CV (mean; SD across folds ≤ 0.015 for all values).*
+
+| *N* | Model | Recall | Precision | F1 | ROC-AUC | PR-AUC |
+|---|---|---|---|---|---|---|
+| 4 | Logistic regression | 0.62 | 0.66 | 0.64 | 0.75 | 0.73 |
+| 4 | XGBoost | 0.65 | 0.68 | 0.67 | 0.78 | 0.76 |
+| 8 | Logistic regression | 0.68 | 0.68 | 0.68 | 0.80 | 0.77 |
+| 8 | Random forest | 0.68 | 0.73 | 0.70 | 0.83 | 0.81 |
+| 8 | XGBoost | 0.69 | 0.72 | 0.71 | 0.83 | 0.81 |
+| 12 | XGBoost | 0.71 | 0.74 | 0.72 | 0.85 | 0.83 |
+| 16 | XGBoost | 0.75 | 0.76 | 0.76 | 0.89 | 0.86 |
+
+- XGBoost and random forest are very close to each other and about 0.02–0.03 ROC-AUC above logistic regression.
+- Adding demographics (Experiment B) adds only 0.005–0.015 ROC-AUC.
+- **Out-of-time (2013 → 2014), Experiment A:** ROC-AUC is 0.03–0.04 lower than in CV. At *N* = 8 it is 0.78 for logistic regression, 0.80 for random forest and 0.79 for XGBoost (11,434 training and 13,800 test students). The models generalise to a later year, with a modest loss.
+
+**Threshold for the recall target.** Following Section 3.5, a threshold is chosen for each CV fold on the out-of-fold predictions of the other four folds, so that recall reaches 0.75. It is then applied to the held-out fold. The preliminary target (recall ≥ 0.75, ROC-AUC ≥ 0.80 by week 8–12) is met: with XGBoost at *N* = 8, recall is 0.75 (95% bootstrap CI 0.74–0.76), precision 0.68 and F1 0.71. The cost is alert volume: 47% of students are flagged at *N* = 8, falling to 38% at *N* = 16 (precision 0.76). `results/figures/threshold_tradeoff_week8_A.png` shows this trade-off and is the basis for the threshold tool (S3).
+
+**Explanations.** In the SHAP summary for XGBoost at *N* = 8 (`results/figures/shap_xgboost_week8_A.png`), the strongest drivers are mean assessment score, the number of missed assessments, clicks relative to the median student in the same presentation, and lateness. These factors are easy to explain to an advisor, which supports the planned plain-language explanations in the prototype.
+
+**First fairness check (RQ3).** At the recall-0.75 threshold (XGBoost, *N* = 8):
+- Recall is lower for female than for male students (0.71 vs 0.78), with equal false-positive rates (0.26). The gap is the same in Experiments A and B, so it comes from the behavioural features rather than from gender being an input.
+- Students aged 55+ have the lowest recall (0.67 in A), but there are only 185 of them, so the confidence interval is wide (`results/figures/fairness_recall_week8.png`).
+- Adding demographics makes the model treat deprivation bands more differently. Recall rises for the most deprived band (0.78 → 0.83), but its false-positive rate also rises (0.33 → 0.40). For students with a missing IMD band, recall falls from 0.67 to 0.55.
+- Because demographics add little accuracy but widen group gaps, Experiment A is the preferred candidate for the support layer. This will be confirmed after tuning, and mitigation (C3) will be tested.
+
+**Limitations of these first results:** hyperparameters are not tuned; a submitted assessment's score is treated as known at its submission date, although marks are returned later, which may slightly favour early cut-offs. The recall target is also harder to hold over time: when the threshold is chosen on 2013 data alone and applied once to unseen 2014 students (XGBoost, Experiment A), recall at *N* = 8 is 0.71 with precision 0.63 and 45% of students flagged. Recall reaches 0.75 only at *N* = 12 (precision 0.63) and *N* = 16 (0.76, precision 0.67; `results/threshold_out_of_time.csv`).
 
 ### 4.3 Tools evaluated
 
 | Need | Option chosen | Alternatives considered | Reason |
 |---|---|---|---|
-| Data processing | pandas | Polars | Familiar, sufficient for OULAD size **[TODO: confirm memory use on studentVle]** |
+| Data processing | pandas | Polars | Familiar, sufficient for OULAD size: `studentVle` (10.7 M rows) loads in about 5 s and uses about 170 MB with compact dtypes; daily aggregates are cached as Parquet |
 | Models | scikit-learn + XGBoost | LightGBM, PyTorch | Supervisor-recommended models; standard, well documented |
 | Explanations | SHAP | LIME | Additive, consistent; works with tree models |
 | Prototype UI | Streamlit | Flask + HTML | Fast to build; enough for a demonstration |
@@ -200,7 +251,7 @@ Ethics application submitted for secondary analysis of public, anonymised data, 
 
 ## 5. Conclusions
 
-This proposal sets out a focused project: an early-warning model for at-risk students built on OULAD, evaluated rigorously for accuracy, earliness, explainability and fairness, and connected to a human-in-the-loop support workflow. The methods follow directly from the research questions, the data is public and ethically approved, and preliminary work (Section 4) will show that the pipeline is feasible within the second semester.
+This proposal sets out a focused project: an early-warning model for at-risk students built on OULAD, evaluated rigorously for accuracy, earliness, explainability and fairness, and connected to a human-in-the-loop support workflow. The methods follow directly from the research questions, and the data is public and ethically approved. The preliminary work in Section 4 shows the pipeline is feasible: an untuned XGBoost model already reaches ROC-AUC 0.83 at week 8 and the recall target of 0.75 at a chosen threshold. The first fairness check has already found group gaps that the second semester will investigate.
 
 ---
 
@@ -269,7 +320,7 @@ Zawacki-Richter, O., Marín, V. I., Bond, M., & Gouverneur, F. (2019). Systemati
 | Period | Activities | Milestone |
 |---|---|---|
 | Semester 1 (done) | Topic selection, literature search, supervisor meetings, dataset choice (OULAD), ethics application and revision | Ethics form submitted; D1 draft |
-| Semester 1 (remaining) | Data exploration, first baseline (Feasibility), D1 final | D1 submitted |
+| Semester 1 (remaining) | Data exploration and first full pipeline run (done, Section 4), D1 final | D1 submitted |
 | Semester 2, phase 1 | Label/feature pipeline for all cut-offs, leakage checks | Feature pipeline |
 | Semester 2, phase 2 | Model training, tuning, threshold selection, out-of-time validation | Model comparison |
 | Semester 2, phase 3 | SHAP and fairness analysis | Interpretability & fairness results |

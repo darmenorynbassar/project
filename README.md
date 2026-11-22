@@ -13,6 +13,7 @@ The project builds and evaluates machine-learning models that identify students 
 |---|---|
 | `docs/D1_Project_Proposal_Darmen_Orynbassar.docx` | Deliverable 1: project proposal in the official HWU template |
 | `docs/D1_Project_Proposal_Darmen_Orynbassar.pdf` | Same proposal as PDF |
+| `docs/Project_Journals_J1-J4_Darmen_Orynbassar.docx` | Project journals J1–J4 (Semester 1, D4 evidence), also as `.pdf` |
 | `docs/gantt.png`, `docs/architecture.png` | Figures used in the proposal |
 | `literature.md` | Reading list with APA references and verification status |
 | `data/` | Local only, **not committed** (see below) |
